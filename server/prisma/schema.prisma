@@ -1,0 +1,922 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  email         String         @unique
+  password      String
+  role          Role           @default(STAFF)
+  staff         Staff?         @relation(fields: [staffId], references: [id])
+  staffId       Int?           @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  documents     Document[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+}
+
+model Staff {
+  id                      Int             @id @default(autoincrement())
+  staffName               String
+  isPartner               Boolean         @default(false)
+  reportingPartnerId      Int?
+  reportingPartner        Staff?          @relation("StaffReporting", fields: [reportingPartnerId], references: [id])
+  reportees               Staff[]         @relation("StaffReporting")
+  isActive                Boolean         @default(true)
+  perHourCost             Decimal         @db.Decimal(10, 2)
+  email                   String          @unique
+  phone                   String?
+  dateOfBirth             DateTime?       @db.Date
+  joiningDate             DateTime?       @db.Date
+  user                    User?
+  partnerTasks            Task[]          @relation("TaskPartner")
+  managerTasks            Task[]          @relation("TaskManager")
+  assignedSubTasks        SubTask[]
+  timesheets              Timesheet[]
+  reimbursements          Reimbursement[]
+  reviewedReimbursements  Reimbursement[] @relation("ReimbursementReviewer")
+  approvedReimbursements  Reimbursement[] @relation("ReimbursementApprover")
+  raisedTickets           Ticket[]        @relation("TicketRaiser")
+  assignedTickets         Ticket[]        @relation("TicketAssignee")
+  approvedTickets         Ticket[]        @relation("TicketApprover")
+  leaves                  Leave[]         @relation("StaffLeaves")
+  reviewedLeaves          Leave[]         @relation("LeaveReviewer")
+  compLeaveRequests       CompLeaveRequest[] @relation("StaffCompLeaves")
+  reviewedCompLeaves      CompLeaveRequest[] @relation("CompLeaveReviewer")
+  correctionRequests      AttendanceCorrectionRequest[] @relation("StaffCorrectionRequests")
+  reviewedCorrections     AttendanceCorrectionRequest[] @relation("CorrectionReviewer")
+  attendance              Attendance[]
+  timesheetLocks          TimesheetLock[]
+  taskTemplates           TaskTemplate[]
+  createdLeads            Lead[]          @relation("LeadCreator")
+  assignedLeads           Lead[]          @relation("LeadAssignee")
+  createdTenders          Tender[]        @relation("TenderCreator")
+  tenderAssignments       TenderAssignment[]
+  announcements           Announcement[]  @relation("AnnouncementCreator")
+  staffDocuments          StaffDocument[] @relation("StaffDocuments")
+  uploadedDocuments       StaffDocument[] @relation("DocumentUploader")
+  itAssets                ITAsset[]
+  frozenTasks             Task[]          @relation("TaskFreezer")
+  taskComments            TaskComment[]
+  uploadedClientDocs      ClientDocument[]
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+}
+
+model Client {
+  id               Int            @id @default(autoincrement())
+  clientCode       String         @unique
+  clientName       String
+  legalName        String?
+  gstin            String?
+  address          String?
+  tasks            Task[]
+  invoices         Invoice[]
+  referredLeads    Lead[]         @relation("LeadReferredBy")
+  convertedFromLead Lead?         @relation("LeadConvertedClient")
+  gstins           ClientGSTIN[]
+  vaultDocuments   ClientDocument[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model ClientGSTIN {
+  id          Int       @id @default(autoincrement())
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId    Int
+  label       String?
+  gstin       String?
+  gstType     GSTType   @default(REGISTERED)
+  address     String?
+  city        String?
+  state       String?
+  stateCode   String?
+  isPrimary   Boolean   @default(false)
+  invoices    Invoice[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model ProfitCentre {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  tasks     Task[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        Int            @id @default(autoincrement())
+  name      String         @unique
+  tasks     Task[]
+  templates TaskTemplate[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model BillingEntity {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  gstin       String?
+  pan         String?
+  address     String?
+  city        String?
+  state       String?
+  stateCode   String?
+  email       String?
+  phone       String?
+  bankName    String?
+  bankAccount String?
+  bankIfsc    String?
+  bankBranch  String?
+  tasks       Task[]
+  invoices    Invoice[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Task {
+  id                    Int            @id @default(autoincrement())
+  taskId                String         @unique
+  taskName              String
+  udin                  String?
+  udinDate              DateTime?      @db.Date
+  partner               Staff?         @relation("TaskPartner", fields: [partnerId], references: [id])
+  partnerId             Int?
+  manager               Staff?         @relation("TaskManager", fields: [managerId], references: [id])
+  managerId             Int?
+  reference             String?
+  terms                 String?
+  client                Client?        @relation(fields: [clientId], references: [id])
+  clientId              Int?
+  profitCentre          ProfitCentre?  @relation(fields: [profitCentreId], references: [id])
+  profitCentreId        Int?
+  category              Category?      @relation(fields: [categoryId], references: [id])
+  categoryId            Int?
+  billedAmount          Decimal?       @db.Decimal(10, 2)
+  billingEntity         BillingEntity? @relation(fields: [billingEntityId], references: [id])
+  billingEntityId       Int?
+  status                TaskStatus     @default(OPEN)
+  billingStatus         BillingStatus  @default(UNBILLED)
+  billDetails           String?
+  dueDate               DateTime?      @db.Date
+  archiveLink           String?
+  archivingConfirmed    Boolean        @default(false)
+  archiveConfirmedById  Int?
+  archiveConfirmedAt    DateTime?
+  isFrozen              Boolean        @default(false)
+  frozenBy              Staff?         @relation("TaskFreezer", fields: [frozenById], references: [id])
+  frozenById            Int?
+  frozenAt              DateTime?
+  timesheets            Timesheet[]
+  expenses              Expense[]
+  documents             Document[]
+  auditLogs             AuditLog[]
+  reimbursements        Reimbursement[]
+  invoice               Invoice?
+  subtasks              SubTask[]
+  comments              TaskComment[]
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+}
+
+model Timesheet {
+  id         Int      @id @default(autoincrement())
+  staff      Staff    @relation(fields: [staffId], references: [id])
+  staffId    Int
+  task       Task     @relation(fields: [taskId], references: [id])
+  taskId     Int
+  date       DateTime @db.Date
+  hoursSpent Decimal  @db.Decimal(5, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([staffId, taskId, date])
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  task        Task     @relation(fields: [taskId], references: [id])
+  taskId      Int
+  description String
+  amount      Decimal  @db.Decimal(10, 2)
+  date        DateTime @db.Date
+  category    String   @default("OTHER")
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SubTask {
+  id            Int            @id @default(autoincrement())
+  subTaskNumber String         @unique
+  task          Task           @relation(fields: [taskId], references: [id])
+  taskId        Int
+  name          String
+  description   String?
+  assignedTo    Staff?         @relation(fields: [assignedToId], references: [id])
+  assignedToId  Int?
+  dueDate       DateTime?      @db.Date
+  status        SubTaskStatus  @default(OPEN)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model InvoiceSettings {
+  id          Int      @id @default(1)
+  prefix      String   @default("")
+  suffix      String   @default("")
+  startNumber Int      @default(1)
+  updatedAt   DateTime @updatedAt
+}
+
+model Invoice {
+  id              Int               @id @default(autoincrement())
+  invoiceNumber   String            @unique
+  task            Task              @relation(fields: [taskId], references: [id])
+  taskId          Int               @unique
+  client          Client            @relation(fields: [clientId], references: [id])
+  clientId        Int
+  clientGstin     ClientGSTIN?      @relation(fields: [clientGstinId], references: [id])
+  clientGstinId   Int?
+  billingEntity   BillingEntity?    @relation(fields: [billingEntityId], references: [id])
+  billingEntityId Int?
+  amount          Decimal           @db.Decimal(10, 2)
+  taxType         TaxType           @default(NONE)
+  cgstRate        Decimal?          @db.Decimal(5, 2)
+  sgstRate        Decimal?          @db.Decimal(5, 2)
+  igstRate        Decimal?          @db.Decimal(5, 2)
+  cgstAmount      Decimal?          @db.Decimal(10, 2)
+  sgstAmount      Decimal?          @db.Decimal(10, 2)
+  igstAmount      Decimal?          @db.Decimal(10, 2)
+  totalAmount     Decimal?          @db.Decimal(10, 2)
+  hsnSacCode      String?
+  template        Int               @default(1)
+  invoiceDate     DateTime          @db.Date
+  dueDate         DateTime?         @db.Date
+  status          InvoiceStatus     @default(DRAFT)
+  paymentDate     DateTime?         @db.Date
+  paymentAmount   Decimal?          @db.Decimal(10, 2)
+  paymentNotes    String?
+  notes           String?
+  lineItems       InvoiceLineItem[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model InvoiceLineItem {
+  id          Int      @id @default(autoincrement())
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId   Int
+  slNo        Int
+  description String
+  hsnSac      String?
+  quantity    Decimal  @db.Decimal(10, 3) @default(1)
+  rate        Decimal  @db.Decimal(10, 2)
+  unit        String?
+  amount      Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+}
+
+model ITAsset {
+  id             Int             @id @default(autoincrement())
+  assetCode      String          @unique
+  name           String
+  category       ITAssetCategory @default(COMPUTER)
+  brand          String?
+  model          String?
+  serialNumber   String?
+  purchaseDate   DateTime?       @db.Date
+  purchasePrice  Decimal?        @db.Decimal(10, 2)
+  warrantyExpiry DateTime?       @db.Date
+  status         ITAssetStatus   @default(IN_STOCK)
+  assignedTo     Staff?          @relation(fields: [assignedToId], references: [id])
+  assignedToId   Int?
+  assignedAt     DateTime?
+  returnedAt     DateTime?
+  location       String?
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model LeaveType {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  daysAllowed Int      @default(0)
+  isActive    Boolean  @default(true)
+  leaves      Leave[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Leave {
+  id              Int         @id @default(autoincrement())
+  staff           Staff       @relation("StaffLeaves", fields: [staffId], references: [id])
+  staffId         Int
+  leaveType       LeaveType?  @relation(fields: [leaveTypeId], references: [id])
+  leaveTypeId     Int?
+  fromDate        DateTime    @db.Date
+  toDate          DateTime    @db.Date
+  days            Float
+  reason          String?
+  status          LeaveStatus @default(PENDING)
+  reviewedBy      Staff?      @relation("LeaveReviewer", fields: [reviewedById], references: [id])
+  reviewedById    Int?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model CompLeaveRequest {
+  id              Int              @id @default(autoincrement())
+  staff           Staff            @relation("StaffCompLeaves", fields: [staffId], references: [id])
+  staffId         Int
+  days            Float
+  reason          String
+  status          CompLeaveStatus  @default(PENDING)
+  reviewedBy      Staff?           @relation("CompLeaveReviewer", fields: [reviewedById], references: [id])
+  reviewedById    Int?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model AttendanceCorrectionRequest {
+  id               Int              @id @default(autoincrement())
+  staff            Staff            @relation("StaffCorrectionRequests", fields: [staffId], references: [id])
+  staffId          Int
+  date             DateTime         @db.Date
+  requestedStatus  AttendanceStatus
+  reason           String
+  status           CorrectionStatus @default(PENDING)
+  reviewedBy       Staff?           @relation("CorrectionReviewer", fields: [reviewedById], references: [id])
+  reviewedById     Int?
+  reviewedAt       DateTime?
+  rejectionReason  String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  staff     Staff            @relation(fields: [staffId], references: [id])
+  staffId   Int
+  date      DateTime         @db.Date
+  status    AttendanceStatus
+  notes     String?
+  createdAt DateTime         @default(now())
+
+  @@unique([staffId, date])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ReimbursementCategory {
+  id        Int                 @id @default(autoincrement())
+  name      String              @unique
+  isActive  Boolean             @default(true)
+  items     ReimbursementItem[]
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+}
+
+model Reimbursement {
+  id              Int                  @id @default(autoincrement())
+  claimNumber     String               @unique
+  staff           Staff                @relation(fields: [staffId], references: [id])
+  staffId         Int
+  task            Task                 @relation(fields: [taskId], references: [id])
+  taskId          Int
+  notes           String?
+  status          ReimbursementStatus  @default(PENDING)
+  reviewedBy      Staff?               @relation("ReimbursementReviewer", fields: [reviewedById], references: [id])
+  reviewedById    Int?
+  reviewedAt      DateTime?
+  returnReason    String?
+  approvedBy      Staff?               @relation("ReimbursementApprover", fields: [approvedById], references: [id])
+  approvedById    Int?
+  approvedAt      DateTime?
+  rejectionReason String?
+  items           ReimbursementItem[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model ReimbursementItem {
+  id              Int                       @id @default(autoincrement())
+  reimbursement   Reimbursement             @relation(fields: [reimbursementId], references: [id], onDelete: Cascade)
+  reimbursementId Int
+  description     String
+  amount          Decimal                   @db.Decimal(10, 2)
+  date            DateTime                  @db.Date
+  category        ReimbursementCategory     @relation(fields: [categoryId], references: [id])
+  categoryId      Int
+  expenseId       Int?                      @unique
+  attachments     ReimbursementAttachment[]
+  createdAt       DateTime                  @default(now())
+}
+
+model ReimbursementAttachment {
+  id           Int               @id @default(autoincrement())
+  item         ReimbursementItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId       Int
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  uploadedById Int
+  createdAt    DateTime          @default(now())
+}
+
+model Ticket {
+  id               Int                 @id @default(autoincrement())
+  ticketNumber     String              @unique
+  title            String
+  description      String
+  raisedBy         Staff               @relation("TicketRaiser", fields: [raisedById], references: [id])
+  raisedById       Int
+  assignedTo       Staff?              @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  assignedToId     Int?
+  type             TicketType          @default(SOFTWARE)
+  priority         TicketPriority      @default(MEDIUM)
+  status           TicketStatus        @default(OPEN)
+  resolutionNotes  String?
+  estimatedCost    Decimal?            @db.Decimal(10, 2)
+  costDescription  String?
+  costStatus       CostApprovalStatus?
+  approvedBy       Staff?              @relation("TicketApprover", fields: [approvedById], references: [id])
+  approvedById     Int?
+  approvedAt       DateTime?
+  rejectionReason  String?
+  attachments      TicketAttachment[]
+  comments         TicketComment[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  resolvedAt       DateTime?
+  closedAt         DateTime?
+}
+
+model TicketAttachment {
+  id           Int      @id @default(autoincrement())
+  ticket       Ticket   @relation(fields: [ticketId], references: [id])
+  ticketId     Int
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  uploadedById Int
+  createdAt    DateTime @default(now())
+}
+
+model TicketComment {
+  id         Int      @id @default(autoincrement())
+  ticket     Ticket   @relation(fields: [ticketId], references: [id])
+  ticketId   Int
+  authorId   Int
+  authorName String
+  comment    String
+  createdAt  DateTime @default(now())
+}
+
+model Document {
+  id           Int      @id @default(autoincrement())
+  task         Task     @relation(fields: [taskId], references: [id])
+  taskId       Int
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  uploadedBy   User     @relation(fields: [userId], references: [id])
+  userId       Int
+  createdAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  entity    String
+  entityId  Int
+  action    String
+  changes   Json?
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  task      Task?    @relation(fields: [taskId], references: [id])
+  taskId    Int?
+  createdAt DateTime @default(now())
+}
+
+model TimesheetLock {
+  id         Int      @id @default(autoincrement())
+  weekStart  DateTime @unique @db.Date
+  lockedBy   Staff    @relation(fields: [lockedById], references: [id])
+  lockedById Int
+  createdAt  DateTime @default(now())
+}
+
+model TaskTemplate {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  categoryId  Int?
+  checklist   Json?
+  isActive    Boolean   @default(true)
+  createdBy   Staff     @relation(fields: [createdById], references: [id])
+  createdById Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  IT
+  HR
+}
+
+enum TaskStatus {
+  OPEN
+  CLOSED
+}
+
+enum SubTaskStatus {
+  OPEN
+  SENT_FOR_REVIEW
+  CLOSED
+}
+
+enum BillingStatus {
+  BILLED
+  UNBILLED
+}
+
+enum TaxType {
+  CGST_SGST
+  IGST
+  NONE
+}
+
+enum GSTType {
+  REGISTERED
+  B2C
+  EXPORT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum CompLeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  WFH
+  ON_LEAVE
+}
+
+enum ReimbursementStatus {
+  PENDING
+  REVIEWED
+  RETURNED
+  APPROVED
+  REJECTED
+}
+
+enum TicketType {
+  SOFTWARE
+  HARDWARE
+  NETWORK
+  ACCESS
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_APPROVAL
+  RESOLVED
+  CLOSED
+}
+
+enum CostApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ITAssetCategory {
+  COMPUTER
+  LAPTOP
+  MONITOR
+  PRINTER
+  PHONE
+  TABLET
+  SERVER
+  NETWORK_DEVICE
+  SOFTWARE_LICENSE
+  FURNITURE
+  OTHER
+}
+
+enum ITAssetStatus {
+  IN_STOCK
+  ASSIGNED
+  UNDER_REPAIR
+  DISPOSED
+  LOST
+}
+
+model Lead {
+  id                  Int           @id @default(autoincrement())
+  leadName            String
+  contactPerson       String
+  phone               String?
+  email               String?
+  source              LeadSource    @default(REFERRAL)
+  referredById        Int?
+  referredBy          Client?       @relation("LeadReferredBy", fields: [referredById], references: [id])
+  estimatedFee        Decimal?      @db.Decimal(10, 2)
+  servicesInterested  String?
+  stage               LeadStage     @default(NEW)
+  priority            LeadPriority  @default(MEDIUM)
+  assignedToId        Int?
+  assignedTo          Staff?        @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  expectedCloseDate   DateTime?     @db.Date
+  nextFollowUpDate    DateTime?     @db.Date
+  lostReason          String?
+  wonFee              Decimal?      @db.Decimal(10, 2)
+  convertedClientId   Int?          @unique
+  convertedClient     Client?       @relation("LeadConvertedClient", fields: [convertedClientId], references: [id])
+  notes               LeadNote[]
+  createdById         Int
+  createdBy           Staff         @relation("LeadCreator", fields: [createdById], references: [id])
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model LeadNote {
+  id         Int      @id @default(autoincrement())
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId     Int
+  note       String
+  authorId   Int
+  authorName String
+  createdAt  DateTime @default(now())
+}
+
+enum LeadStage {
+  NEW
+  CONTACTED
+  PROPOSAL_SENT
+  NEGOTIATING
+  WON
+  LOST
+}
+
+enum LeadSource {
+  REFERRAL
+  COLD_OUTREACH
+  WEBSITE
+  EVENT
+  EXISTING_CLIENT
+  OTHER
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Tender {
+  id                 Int                   @id @default(autoincrement())
+  tenderNumber       String                @unique
+  title              String
+  clientName         String
+  tenderSource       TenderSource          @default(GOVERNMENT)
+  description        String?
+  bidValue           Decimal?              @db.Decimal(15, 2)
+  estimatedValue     Decimal?              @db.Decimal(15, 2)
+  emdAmount          Decimal?              @db.Decimal(10, 2)
+  emdRefunded        Boolean               @default(false)
+  status             TenderStatus          @default(DRAFT)
+  preBidDate         DateTime?             @db.Date
+  submissionDeadline DateTime?             @db.Date
+  submittedAt        DateTime?             @db.Date
+  dueDate            DateTime?             @db.Date
+  resultDate         DateTime?             @db.Date
+  lostReason         String?
+  createdById        Int
+  createdBy          Staff                 @relation("TenderCreator", fields: [createdById], references: [id])
+  assignedStaff      TenderAssignment[]
+  tenderDocuments    TenderDocument[]
+  submissionFiles    TenderSubmissionFile[]
+  comments           TenderComment[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+}
+
+model TenderAssignment {
+  id       Int    @id @default(autoincrement())
+  tender   Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId Int
+  staff    Staff  @relation(fields: [staffId], references: [id])
+  staffId  Int
+
+  @@unique([tenderId, staffId])
+}
+
+model TenderDocument {
+  id           Int      @id @default(autoincrement())
+  tender       Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId     Int
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  uploadedById Int
+  createdAt    DateTime @default(now())
+}
+
+model TenderSubmissionFile {
+  id           Int      @id @default(autoincrement())
+  tender       Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId     Int
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  uploadedById Int
+  createdAt    DateTime @default(now())
+}
+
+model TenderComment {
+  id         Int      @id @default(autoincrement())
+  tender     Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  tenderId   Int
+  comment    String
+  authorId   Int
+  authorName String
+  createdAt  DateTime @default(now())
+}
+
+enum TenderStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_EVALUATION
+  WON
+  LOST
+  WITHDRAWN
+}
+
+enum TenderSource {
+  GOVERNMENT
+  PSU
+  PRIVATE
+  NGO
+  OTHER
+}
+
+model Holiday {
+  id        Int         @id @default(autoincrement())
+  date      DateTime    @db.Date
+  name      String
+  type      HolidayType @default(NATIONAL)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([date])
+}
+
+model Announcement {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String
+  isPinned    Boolean   @default(false)
+  expiresAt   DateTime?
+  createdById Int
+  createdBy   Staff     @relation("AnnouncementCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model StaffDocument {
+  id           Int              @id @default(autoincrement())
+  staff        Staff            @relation("StaffDocuments", fields: [staffId], references: [id])
+  staffId      Int
+  title        String
+  category     StaffDocCategory @default(OTHER)
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  expiryDate   DateTime?        @db.Date
+  notes        String?
+  uploadedBy   Staff            @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  uploadedById Int
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+enum HolidayType {
+  NATIONAL
+  REGIONAL
+  FIRM
+}
+
+enum StaffDocCategory {
+  IDENTITY
+  EDUCATIONAL
+  PROFESSIONAL
+  EMPLOYMENT
+  OTHER
+}
+
+// ── Task Comments (Activity Feed) ─────────────────────────────────────────────
+model TaskComment {
+  id        Int      @id @default(autoincrement())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    Int
+  author    Staff    @relation(fields: [authorId], references: [id])
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Client Document Vault ─────────────────────────────────────────────────────
+enum ClientDocCategory {
+  PAN
+  GST_CERTIFICATE
+  INCORPORATION
+  BANK_DETAILS
+  BOARD_RESOLUTION
+  POWER_OF_ATTORNEY
+  FINANCIAL_STATEMENT
+  OTHER
+}
+
+model ClientDocument {
+  id           Int               @id @default(autoincrement())
+  client       Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId     Int
+  title        String
+  category     ClientDocCategory @default(OTHER)
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  notes        String?
+  uploadedBy   Staff             @relation(fields: [uploadedById], references: [id])
+  uploadedById Int
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
