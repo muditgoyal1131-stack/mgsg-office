@@ -39,7 +39,8 @@ const PORT = process.env.PORT || 5000;
 // Allow both local dev and production frontend origins
 const allowedOrigins = [
   'http://localhost:3000',
-  process.env.FRONTEND_URL,        // e.g. https://mgsg-client.up.railway.app
+  process.env.FRONTEND_URL,        // e.g. https://login.mgsg.in
+  process.env.FRONTEND_URL_2,      // fallback Railway URL during DNS/SSL transitions
 ].filter(Boolean) as string[];
 
 app.use(cors({
