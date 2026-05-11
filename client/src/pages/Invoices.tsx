@@ -9,6 +9,7 @@ import {
   getTasks, getBillingEntities, getClients,
   getInvoiceSettings, updateInvoiceSettings,
 } from '../api';
+import ProfitCentreAccess from './ProfitCentreAccess';
 import { useAuth } from '../contexts/AuthContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -38,6 +39,8 @@ interface LineItem {
   quantity: number; rate: number; unit?: string; amount: number;
 }
 
+interface ProfitCentreInfo { id: number; name: string; }
+
 interface Invoice {
   id: number; invoiceNumber: string; status: InvoiceStatus;
   amount: number; taxType: TaxType;
@@ -51,6 +54,7 @@ interface Invoice {
   billingEntity?: BillingEntityFull;
   clientGstin?: ClientGstin; clientGstinId?: number;
   lineItems?: LineItem[];
+  profitCentre?: ProfitCentreInfo;
   createdAt: string;
 }
 
@@ -980,6 +984,7 @@ const InvoicesTab: React.FC<{ tasks: TaskInfo[]; billingEntities: BillingEntityF
           <thead>
             <tr className="border-b border-gray-100">
               <th className="table-header">Invoice #</th>
+              <th className="table-header">Profit Centre</th>
               <th className="table-header">Client</th>
               <th className="table-header">Task</th>
               <th className="table-header text-right">Taxable</th>
@@ -993,12 +998,17 @@ const InvoicesTab: React.FC<{ tasks: TaskInfo[]; billingEntities: BillingEntityF
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={10} className="table-cell text-center text-gray-400 py-10">Loading…</td></tr>
+              <tr><td colSpan={11} className="table-cell text-center text-gray-400 py-10">Loading…</td></tr>
             ) : invoices.length === 0 ? (
-              <tr><td colSpan={10} className="table-cell text-center text-gray-400 py-10">No invoices found.</td></tr>
+              <tr><td colSpan={11} className="table-cell text-center text-gray-400 py-10">No invoices found.</td></tr>
             ) : invoices.map(inv => (
               <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
                 <td className="table-cell font-mono font-medium text-blue-700">{inv.invoiceNumber}</td>
+                <td className="table-cell">
+                  <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
+                    {inv.profitCentre?.name ?? 'Default'}
+                  </span>
+                </td>
                 <td className="table-cell text-gray-700">{inv.client?.clientName ?? '—'}</td>
                 <td className="table-cell text-gray-700 max-w-[150px] truncate">
                   <span className="text-xs text-gray-400 block">{inv.task?.taskId}</span>{inv.task?.taskName}
@@ -1137,9 +1147,9 @@ const ReceivablesTab: React.FC = () => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const Invoices: React.FC = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isHR } = useAuth();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'invoices' | 'receivables'>('invoices');
+  const [activeTab, setActiveTab] = useState<'invoices' | 'receivables' | 'profit-centres'>('invoices');
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
   const [billingEntities, setBillingEntities] = useState<BillingEntityFull[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1157,8 +1167,9 @@ const Invoices: React.FC = () => {
   }, []);
 
   const tabs = [
-    { id: 'invoices' as const, label: 'Invoices' },
-    { id: 'receivables' as const, label: 'Receivables' },
+    { id: 'invoices' as const, label: '🧾 Invoices' },
+    { id: 'receivables' as const, label: '📊 Receivables' },
+    { id: 'profit-centres' as const, label: '🏦 Profit Centres' },
   ];
 
   return (
@@ -1176,7 +1187,9 @@ const Invoices: React.FC = () => {
         ))}
       </div>
 
-      {loading ? (
+      {activeTab === 'profit-centres' ? (
+        <ProfitCentreAccess />
+      ) : loading ? (
         <div className="text-center py-20 text-gray-400">Loading…</div>
       ) : (
         <>

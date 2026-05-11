@@ -13,6 +13,7 @@ const INVOICE_INCLUDE = {
   billingEntity: true,
   clientGstin: true,
   lineItems: { orderBy: { slNo: 'asc' as const } },
+  profitCentre: { select: { id: true, name: true } },
 };
 
 /** Returns true if the user is a Partner (isPartner=true on Staff) or ADMIN */
@@ -82,27 +83,42 @@ const computeTax = (amount: number, taxType: string) => {
 
 export const getInvoices = async (req: Request & { user?: any }, res: Response) => {
   try {
-    const { status, clientId } = req.query;
-    const canSeeAll = await isPartnerOrAdmin(req.user);
+    const { status, clientId, profitCentreId } = req.query;
+    const userRole = req.user?.role;
+    const isAdminOrHR = userRole === 'ADMIN' || userRole === 'HR';
+
+    const staffProfile = req.user?.staffId
+      ? await prisma.staff.findUnique({ where: { id: req.user.staffId }, select: { isPartner: true } })
+      : null;
+    const isPartner = staffProfile?.isPartner ?? false;
 
     const where: any = {};
-
     if (status) where.status = status as string;
     if (clientId) where.clientId = Number(clientId);
+    if (profitCentreId) where.profitCentreId = Number(profitCentreId);
 
-    // Staff (non-partner, non-admin) only see invoices for tasks they have timesheets on
-    if (!canSeeAll) {
-      const staffId = req.user?.staffId;
-      if (!staffId) {
-        return res.status(403).json({ message: 'No staff profile associated with this account' });
-      }
-      const staffTimesheets = await prisma.timesheet.findMany({
-        where: { staffId },
-        select: { taskId: true },
-        distinct: ['taskId'],
+    if (isAdminOrHR) {
+      // Admin/HR see everything — no extra filter
+    } else if (isPartner) {
+      // Partners see only invoices in their assigned profit centres
+      const pcAccess = await prisma.staffProfitCentre.findMany({
+        where: { staffId: req.user.staffId },
+        select: { profitCentreId: true },
       });
-      const assignedTaskIds = staffTimesheets.map((ts) => ts.taskId);
-      where.taskId = { in: assignedTaskIds };
+      if (pcAccess.length === 0) return res.json([]);
+      const pcIds = pcAccess.map((p) => p.profitCentreId);
+      // Merge with any existing profitCentreId filter from query param
+      where.profitCentreId = profitCentreId
+        ? { in: pcIds.includes(Number(profitCentreId)) ? [Number(profitCentreId)] : [] }
+        : { in: pcIds };
+    } else {
+      // Regular staff: only invoices for tasks they have timesheets on
+      const staffId = req.user?.staffId;
+      if (!staffId) return res.status(403).json({ message: 'No staff profile associated' });
+      const staffTimesheets = await prisma.timesheet.findMany({
+        where: { staffId }, select: { taskId: true }, distinct: ['taskId'],
+      });
+      where.taskId = { in: staffTimesheets.map((ts) => ts.taskId) };
     }
 
     const invoices = await prisma.invoice.findMany({
@@ -151,6 +167,13 @@ export const createInvoice = async (req: Request & { user?: any }, res: Response
     if (!task) return res.status(404).json({ message: 'Task not found' });
     if (!task.clientId) return res.status(400).json({ message: 'Task has no associated client' });
 
+    // Resolve profit centre: use task's PC, or fall back to "Default"
+    let resolvedProfitCentreId: number | null = task.profitCentreId ?? null;
+    if (!resolvedProfitCentreId) {
+      const defaultPc = await prisma.profitCentre.findFirst({ where: { name: 'Default' } });
+      resolvedProfitCentreId = defaultPc?.id ?? null;
+    }
+
     // Prevent double-invoicing
     const existing = await prisma.invoice.findUnique({ where: { taskId: Number(taskId) } });
     if (existing) {
@@ -197,6 +220,7 @@ export const createInvoice = async (req: Request & { user?: any }, res: Response
           invoiceDate: new Date(invoiceDate),
           dueDate: dueDate ? new Date(dueDate) : null,
           notes: notes ?? null,
+          profitCentreId: resolvedProfitCentreId,
           status: 'DRAFT',
         },
       });

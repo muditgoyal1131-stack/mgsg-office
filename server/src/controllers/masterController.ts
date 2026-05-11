@@ -7,8 +7,43 @@ const prisma = new PrismaClient();
 
 export const getProfitCentres = async (_req: Request, res: Response) => {
   try {
-    const items = await prisma.profitCentre.findMany({ orderBy: { name: 'asc' } });
+    const items = await prisma.profitCentre.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        staffAccess: {
+          include: { staff: { select: { id: true, staffName: true, email: true, isPartner: true } } },
+        },
+        _count: { select: { invoices: true } },
+      },
+    });
     res.json(items);
+  } catch { res.status(500).json({ message: 'Server error' }); }
+};
+
+// ── Profit Centre Partner Access ────────────────────────────────────────────
+
+export const assignPartnerToProfitCentre = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { staffId } = req.body;
+  if (!staffId) return res.status(400).json({ message: 'staffId is required' });
+  try {
+    const access = await prisma.staffProfitCentre.create({
+      data: { staffId: Number(staffId), profitCentreId: Number(id) },
+    });
+    res.status(201).json(access);
+  } catch (err: any) {
+    if (err.code === 'P2002') return res.status(409).json({ message: 'Already assigned' });
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const removePartnerFromProfitCentre = async (req: Request, res: Response) => {
+  const { id, staffId } = req.params;
+  try {
+    await prisma.staffProfitCentre.deleteMany({
+      where: { profitCentreId: Number(id), staffId: Number(staffId) },
+    });
+    res.json({ message: 'Removed' });
   } catch { res.status(500).json({ message: 'Server error' }); }
 };
 

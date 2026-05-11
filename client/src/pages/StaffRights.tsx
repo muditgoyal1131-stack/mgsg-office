@@ -23,7 +23,7 @@ const RIGHTS: RightRow[] = [
   { feature: 'Reimbursements',       admin: YES + ' Approve',hr: YES + ' Approve',partner: YES + ' Submit',it: YES + ' Submit',staff: YES + ' Submit' },
   { feature: 'Tickets',              admin: YES + ' Manage', hr: YES,            partner: YES,           it: YES + ' Resolve',staff: YES + ' Raise' },
   { feature: 'Leaves & Attendance',  admin: YES,             hr: YES,            partner: YES,           it: YES,             staff: YES },
-  { feature: 'Invoices',             admin: YES + ' Full',   hr: YES,            partner: YES,           it: NO,              staff: NO },
+  { feature: 'Invoices',             admin: YES + ' All PCs',hr: YES + ' All PCs',partner: LIMITED + ' Assigned PCs only', it: NO, staff: NO },
   { feature: 'Leads & Tenders',      admin: YES,             hr: NO,             partner: YES,           it: NO,              staff: NO },
   { feature: 'Announcements',        admin: YES + ' Create', hr: YES + ' Create',partner: YES + ' Create',it: YES,            staff: YES },
   { feature: 'IT Assets',            admin: YES,             hr: YES,            partner: YES,           it: YES,             staff: YES },
@@ -54,7 +54,8 @@ const StaffRights: React.FC = () => {
         <p className="text-sm text-blue-800 font-medium">📋 Role Permissions Overview</p>
         <p className="text-xs text-blue-600 mt-1">
           This table summarises which roles can access each feature. Admins have full access.
-          HR manages staff (including editing costs), approvals, and invoices. Partners can access invoices, clients, leads &amp; tenders.
+          HR manages staff (including editing costs), approvals, and all invoices. Partners can access invoices
+          only for their assigned <strong>Profit Centres</strong> (managed under Invoices → Profit Centres tab).
           IT resolves tickets. Staff have basic access.
         </p>
       </div>

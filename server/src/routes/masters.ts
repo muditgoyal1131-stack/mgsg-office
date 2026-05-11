@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate, requireAdmin, requireHR } from '../middleware/auth';
 import {
   getProfitCentres, createProfitCentre, updateProfitCentre, deleteProfitCentre,
+  assignPartnerToProfitCentre, removePartnerFromProfitCentre,
   getCategories, createCategory, updateCategory, deleteCategory,
   getBillingEntities, createBillingEntity, updateBillingEntity, deleteBillingEntity,
 } from '../controllers/masterController';
@@ -14,6 +15,9 @@ router.get('/profit-centres', getProfitCentres);
 router.post('/profit-centres', requireAdmin, createProfitCentre);
 router.put('/profit-centres/:id', requireAdmin, updateProfitCentre);
 router.delete('/profit-centres/:id', requireAdmin, deleteProfitCentre);
+// Partner access management for profit centres (Admin + HR)
+router.post('/profit-centres/:id/partners', requireHR, assignPartnerToProfitCentre);
+router.delete('/profit-centres/:id/partners/:staffId', requireHR, removePartnerFromProfitCentre);
 
 router.get('/categories', getCategories);
 router.post('/categories', requireAdmin, createCategory);

@@ -70,6 +70,10 @@ export const getProfitCentres = () => api.get('/masters/profit-centres');
 export const createProfitCentre = (data: any) => api.post('/masters/profit-centres', data);
 export const updateProfitCentre = (id: number, data: any) => api.put(`/masters/profit-centres/${id}`, data);
 export const deleteProfitCentre = (id: number) => api.delete(`/masters/profit-centres/${id}`);
+export const assignPartnerToProfitCentre = (pcId: number, staffId: number) =>
+  api.post(`/masters/profit-centres/${pcId}/partners`, { staffId });
+export const removePartnerFromProfitCentre = (pcId: number, staffId: number) =>
+  api.delete(`/masters/profit-centres/${pcId}/partners/${staffId}`);
 
 export const getCategories = () => api.get('/masters/categories');
 export const createCategory = (data: any) => api.post('/masters/categories', data);

@@ -65,6 +65,7 @@ model Staff {
   frozenTasks             Task[]          @relation("TaskFreezer")
   taskComments            TaskComment[]
   uploadedClientDocs      ClientDocument[]
+  profitCentres           StaffProfitCentre[]
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
 }
@@ -106,11 +107,24 @@ model ClientGSTIN {
 }
 
 model ProfitCentre {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  tasks     Task[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int                  @id @default(autoincrement())
+  name        String               @unique
+  tasks       Task[]
+  invoices    Invoice[]
+  staffAccess StaffProfitCentre[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model StaffProfitCentre {
+  id             Int          @id @default(autoincrement())
+  staff          Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId        Int
+  profitCentre   ProfitCentre @relation(fields: [profitCentreId], references: [id], onDelete: Cascade)
+  profitCentreId Int
+  createdAt      DateTime     @default(now())
+
+  @@unique([staffId, profitCentreId])
 }
 
 model Category {
@@ -245,6 +259,8 @@ model Invoice {
   taskId          Int               @unique
   client          Client            @relation(fields: [clientId], references: [id])
   clientId        Int
+  profitCentre    ProfitCentre?     @relation(fields: [profitCentreId], references: [id])
+  profitCentreId  Int?
   clientGstin     ClientGSTIN?      @relation(fields: [clientGstinId], references: [id])
   clientGstinId   Int?
   billingEntity   BillingEntity?    @relation(fields: [billingEntityId], references: [id])
