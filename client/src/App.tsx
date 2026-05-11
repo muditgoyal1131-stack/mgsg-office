@@ -47,6 +47,13 @@ const PartnerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return (isAdmin || isPartner) ? <>{children}</> : <Navigate to="/dashboard" replace />;
 };
 
+// Invoices: Admin + HR + Partner
+const InvoiceRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAdmin, isHR, isPartner, loading } = useAuth();
+  if (loading) return null;
+  return (isAdmin || isHR || isPartner) ? <>{children}</> : <Navigate to="/dashboard" replace />;
+};
+
 const AppRoutes: React.FC = () => {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -71,7 +78,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/wip-report" element={<Navigate to="/reports" replace />} />
 
       <Route path="/attendance" element={<PrivateRoute><Attendance /></PrivateRoute>} />
-      <Route path="/invoices" element={<PrivateRoute><Invoices /></PrivateRoute>} />
+      <Route path="/invoices" element={<PrivateRoute><InvoiceRoute><Invoices /></InvoiceRoute></PrivateRoute>} />
       <Route path="/leads" element={<PrivateRoute><PartnerRoute><Leads /></PartnerRoute></PrivateRoute>} />
       <Route path="/tenders" element={<PrivateRoute><PartnerRoute><Tenders /></PartnerRoute></PrivateRoute>} />
       <Route path="/announcements" element={<PrivateRoute><Announcements /></PrivateRoute>} />

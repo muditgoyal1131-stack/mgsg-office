@@ -74,6 +74,8 @@ model Client {
   clientCode       String         @unique
   clientName       String
   legalName        String?
+  pan              String?
+  phone            String?
   gstin            String?
   address          String?
   tasks            Task[]

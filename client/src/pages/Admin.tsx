@@ -8,6 +8,7 @@ interface Staff {
   isPartner: boolean;
   perHourCost: number;
   email: string;
+  phone?: string | null;
   role?: string;
   isActive: boolean;
   reportingPartner?: { id: number; staffName: string } | null;
@@ -17,7 +18,7 @@ interface Staff {
 }
 
 const defaultForm = {
-  staffName: '', isPartner: false, perHourCost: '', email: '', password: '',
+  staffName: '', isPartner: false, perHourCost: '', email: '', phone: '', password: '',
   role: 'STAFF', reportingPartnerId: '', dateOfBirth: '', joiningDate: '',
 };
 
@@ -64,6 +65,7 @@ const Admin: React.FC = () => {
       isPartner: s.isPartner,
       perHourCost: String(s.perHourCost),
       email: s.email,
+      phone: s.phone || '',
       password: '',
       role: s.role || 'STAFF',
       reportingPartnerId: s.reportingPartnerId ? String(s.reportingPartnerId) : '',
@@ -80,17 +82,20 @@ const Admin: React.FC = () => {
     const payload: any = {
       staffName: form.staffName,
       email: form.email,
+      phone: form.phone || null,
       password: form.password,
       reportingPartnerId: form.reportingPartnerId || null,
       dateOfBirth: form.dateOfBirth || null,
       joiningDate: form.joiningDate || null,
     };
-    if (isAdmin) {
+    if (isAdmin || isHR) {
       payload.isPartner = form.isPartner;
       payload.perHourCost = Number(form.perHourCost);
+    }
+    if (isAdmin) {
       payload.role = form.role;
     } else {
-      // HR: limited fields
+      // HR: can set IT or STAFF role only
       payload.role = form.role === 'IT' ? 'IT' : 'STAFF';
     }
     try {
@@ -146,11 +151,11 @@ const Admin: React.FC = () => {
               <thead>
                 <tr>
                   <th className="table-header">Name</th>
-                  <th className="table-header">Email</th>
+                  <th className="table-header">Email / Phone</th>
                   <th className="table-header">Role</th>
                   <th className="table-header">Partner</th>
                   <th className="table-header">Reporting To</th>
-                  {isAdmin && <th className="table-header">Rate/hr</th>}
+                  {(isAdmin || isHR) && <th className="table-header">Rate/hr</th>}
                   <th className="table-header">Status</th>
                   <th className="table-header">Actions</th>
                 </tr>
@@ -158,8 +163,23 @@ const Admin: React.FC = () => {
               <tbody>
                 {staff.map((s) => (
                   <tr key={s.id} className={`hover:bg-gray-50 ${!s.isActive ? 'opacity-50 bg-gray-50' : ''}`}>
-                    <td className="table-cell font-medium">{s.staffName}</td>
-                    <td className="table-cell text-gray-500">{s.email}</td>
+                    <td className="table-cell">
+                      <div className="font-medium">{s.staffName}</div>
+                      {s.dateOfBirth && (
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          🎂 {new Date(s.dateOfBirth).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+                      )}
+                      {s.joiningDate && (
+                        <div className="text-xs text-gray-400">
+                          📅 Joined {new Date(s.joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+                      )}
+                    </td>
+                    <td className="table-cell">
+                      <div className="text-gray-500">{s.email}</div>
+                      {s.phone && <div className="text-xs text-gray-400 mt-0.5">📞 {s.phone}</div>}
+                    </td>
                     <td className="table-cell">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleBadge(s.role)}`}>
                         {s.role || 'STAFF'}
@@ -173,7 +193,7 @@ const Admin: React.FC = () => {
                     <td className="table-cell text-gray-500 text-xs">
                       {s.reportingPartner?.staffName || '—'}
                     </td>
-                    {isAdmin && (
+                    {(isAdmin || isHR) && (
                       <td className="table-cell">₹{Number(s.perHourCost).toLocaleString('en-IN')}</td>
                     )}
                     <td className="table-cell">
@@ -183,7 +203,7 @@ const Admin: React.FC = () => {
                     </td>
                     <td className="table-cell">
                       <div className="flex gap-2 flex-wrap">
-                        {isAdmin && (
+                        {(isAdmin || isHR) && (
                           <button className="text-blue-600 hover:text-blue-800 text-xs font-medium" onClick={() => openEdit(s)}>
                             Edit
                           </button>
@@ -231,6 +251,11 @@ const Admin: React.FC = () => {
                 <input type="email" className="input-field" value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })} required />
               </div>
+              <div>
+                <label className="label">Phone</label>
+                <input type="tel" className="input-field" value={form.phone} placeholder="10-digit mobile number"
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </div>
               {!editing && (
                 <div>
                   <label className="label">Password (default: Welcome@123)</label>
@@ -249,7 +274,7 @@ const Admin: React.FC = () => {
                   {isAdmin && <option value="ADMIN">Admin (full access)</option>}
                 </select>
               </div>
-              {isAdmin && (
+              {(isAdmin || isHR) && (
                 <>
                   <div>
                     <label className="label">Per Hour Cost (₹)</label>

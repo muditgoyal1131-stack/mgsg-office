@@ -47,6 +47,8 @@ app.use(cors({
   origin: (origin, cb) => {
     // Allow requests with no origin (mobile apps, curl, server-to-server)
     if (!origin) return cb(null, true);
+    // In development, allow all localhost origins (covers CRA proxy rewriting)
+    if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost')) return cb(null, true);
     if (allowedOrigins.includes(origin)) return cb(null, true);
     cb(new Error(`CORS blocked: ${origin}`));
   },

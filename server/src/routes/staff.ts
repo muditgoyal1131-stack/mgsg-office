@@ -9,7 +9,7 @@ router.get('/clients/health', authenticate, getClientHealthScores);
 router.get('/', authenticate, getAllStaff);
 router.post('/', authenticate, requireHR, createStaff);
 router.put('/:id/toggle-active', authenticate, requireHR, toggleStaffActive);
-router.put('/:id', authenticate, requireAdmin, updateStaff);
+router.put('/:id', authenticate, requireHR, updateStaff);
 router.delete('/:id', authenticate, requireAdmin, deleteStaff);
 
 export default router;

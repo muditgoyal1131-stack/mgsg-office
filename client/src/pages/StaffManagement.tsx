@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import Admin from './Admin';
 import StaffDocuments from './StaffDocuments';
 import StaffKPI from './StaffKPI';
+import StaffRights from './StaffRights';
 
-type Tab = 'staff' | 'documents' | 'kpis';
+type Tab = 'staff' | 'documents' | 'kpis' | 'rights';
 
 const StaffManagement: React.FC = () => {
   const [tab, setTab] = useState<Tab>('staff');
@@ -12,6 +13,7 @@ const StaffManagement: React.FC = () => {
     { key: 'staff',     label: '⚙️ Staff List' },
     { key: 'documents', label: '🗃️ Documents' },
     { key: 'kpis',      label: '🎯 KPIs' },
+    { key: 'rights',    label: '🔐 Access Rights' },
   ];
 
   return (
@@ -43,6 +45,7 @@ const StaffManagement: React.FC = () => {
       {tab === 'staff'     && <Admin />}
       {tab === 'documents' && <StaffDocuments />}
       {tab === 'kpis'      && <StaffKPI />}
+      {tab === 'rights'    && <StaffRights />}
     </div>
   );
 };

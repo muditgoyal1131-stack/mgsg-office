@@ -292,7 +292,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       icon: '🏢',
       items: [
         { to: '/clients',        label: 'Clients',        icon: '🏢' },
-        { to: '/invoices',       label: 'Invoices',       icon: '🧾' },
+        ...(isAdmin || isHR || isPartner ? [{ to: '/invoices', label: 'Invoices', icon: '🧾' }] : []),
         { to: '/reimbursements', label: 'Reimbursements', icon: '💸' },
       ],
     },

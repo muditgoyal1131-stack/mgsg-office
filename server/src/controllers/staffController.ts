@@ -29,7 +29,7 @@ export const getAllStaff = async (_req: Request, res: Response) => {
 };
 
 export const createStaff = async (req: Request & { user?: any }, res: Response) => {
-  const { staffName, isPartner, perHourCost, email, password, role, reportingPartnerId, dateOfBirth, joiningDate } = req.body;
+  const { staffName, isPartner, perHourCost, email, password, role, reportingPartnerId, phone, dateOfBirth, joiningDate } = req.body;
   const isHRUser = req.user?.role === 'HR';
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -41,6 +41,7 @@ export const createStaff = async (req: Request & { user?: any }, res: Response) 
         isPartner: isHRUser ? false : Boolean(isPartner),
         perHourCost: isHRUser ? 0 : (perHourCost || 0),
         email,
+        phone: phone || null,
         reportingPartnerId: reportingPartnerId ? Number(reportingPartnerId) : null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         joiningDate: joiningDate ? new Date(joiningDate) : null,
@@ -62,7 +63,7 @@ export const createStaff = async (req: Request & { user?: any }, res: Response) 
 
 export const updateStaff = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { staffName, isPartner, perHourCost, email, role, reportingPartnerId, dateOfBirth, joiningDate } = req.body;
+  const { staffName, isPartner, perHourCost, email, role, reportingPartnerId, phone, dateOfBirth, joiningDate } = req.body;
   try {
     const staff = await prisma.staff.update({
       where: { id: Number(id) },
@@ -71,6 +72,7 @@ export const updateStaff = async (req: Request, res: Response) => {
         isPartner: Boolean(isPartner),
         perHourCost,
         email,
+        phone: phone || null,
         reportingPartnerId: reportingPartnerId ? Number(reportingPartnerId) : null,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         joiningDate: joiningDate ? new Date(joiningDate) : null,

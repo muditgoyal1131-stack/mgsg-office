@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 
 interface Client {
   id: number; clientCode: string; clientName: string; legalName?: string;
-  gstin?: string; address?: string;
+  pan?: string; phone?: string; gstin?: string; address?: string;
 }
 interface HealthScore {
   clientId: number; clientCode: string; clientName: string; score: number;
@@ -486,7 +486,7 @@ const Clients: React.FC = () => {
   const [healthLoading, setHealthLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
-  const [form, setForm] = useState({ clientName: '', legalName: '', gstin: '', address: '' });
+  const [form, setForm] = useState({ clientName: '', legalName: '', pan: '', phone: '', gstin: '', address: '' });
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'search' | 'health'>('search');
   const [gstinClient, setGstinClient] = useState<Client | null>(null);
@@ -506,8 +506,8 @@ const Clients: React.FC = () => {
   }, []);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => { const v = e.target.value; setSearch(v); doSearch(v); };
-  const openCreate = () => { setEditing(null); setForm({ clientName: '', legalName: '', gstin: '', address: '' }); setError(''); setShowModal(true); };
-  const openEdit = (c: Client) => { setEditing(c); setForm({ clientName: c.clientName, legalName: c.legalName || '', gstin: c.gstin || '', address: c.address || '' }); setError(''); setShowModal(true); };
+  const openCreate = () => { setEditing(null); setForm({ clientName: '', legalName: '', pan: '', phone: '', gstin: '', address: '' }); setError(''); setShowModal(true); };
+  const openEdit = (c: Client) => { setEditing(c); setForm({ clientName: c.clientName, legalName: c.legalName || '', pan: c.pan || '', phone: c.phone || '', gstin: c.gstin || '', address: c.address || '' }); setError(''); setShowModal(true); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError('');
@@ -561,7 +561,8 @@ const Clients: React.FC = () => {
               <table className="w-full text-sm">
                 <thead><tr>
                   <th className="table-header">Code</th><th className="table-header">Client Name</th>
-                  <th className="table-header">Legal Name</th><th className="table-header">GSTIN</th>
+                  <th className="table-header">Legal Name</th><th className="table-header">PAN</th>
+                  <th className="table-header">Phone</th><th className="table-header">GSTIN</th>
                   <th className="table-header">Actions</th>
                 </tr></thead>
                 <tbody>
@@ -570,6 +571,8 @@ const Clients: React.FC = () => {
                       <td className="table-cell font-mono font-medium text-blue-700">{c.clientCode}</td>
                       <td className="table-cell font-medium">{c.clientName}</td>
                       <td className="table-cell text-gray-500">{c.legalName || '—'}</td>
+                      <td className="table-cell font-mono text-xs font-medium">{c.pan || '—'}</td>
+                      <td className="table-cell text-gray-500 text-xs">{c.phone || '—'}</td>
                       <td className="table-cell text-gray-500 font-mono text-xs">{c.gstin || '—'}</td>
                       <td className="table-cell">
                         <div className="flex gap-2 flex-wrap">
@@ -581,7 +584,7 @@ const Clients: React.FC = () => {
                       </td>
                     </tr>
                   ))}
-                  {clients.length === 0 && <tr><td colSpan={5} className="table-cell text-center text-gray-400 py-8">No clients found for "{search}"</td></tr>}
+                  {clients.length === 0 && <tr><td colSpan={7} className="table-cell text-center text-gray-400 py-8">No clients found for "{search}"</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -663,7 +666,16 @@ const Clients: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div><label className="label">Client Name *</label><input className="input-field" value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} required /></div>
               <div><label className="label">Legal Name</label><input className="input-field" value={form.legalName} placeholder="Full legal entity name" onChange={(e) => setForm({ ...form, legalName: e.target.value })} /></div>
-              <div><label className="label">GSTIN</label><input className="input-field font-mono" value={form.gstin} placeholder="22AAAAA0000A1Z5" onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })} /></div>
+              <div>
+                <label className="label">PAN *</label>
+                <input className="input-field font-mono uppercase" value={form.pan}
+                  placeholder="AAAAA0000A" maxLength={10}
+                  onChange={(e) => setForm({ ...form, pan: e.target.value.toUpperCase() })}
+                  required />
+                <p className="text-xs text-gray-400 mt-0.5">10-character Permanent Account Number</p>
+              </div>
+              <div><label className="label">Phone</label><input className="input-field" value={form.phone} placeholder="10-digit mobile number" onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+              <div><label className="label">GSTIN (Primary)</label><input className="input-field font-mono" value={form.gstin} placeholder="22AAAAA0000A1Z5 — add more via GSTIN button" onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })} /></div>
               <div><label className="label">Address</label><textarea className="input-field" rows={3} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
               {error && <p className="text-red-600 text-sm">{error}</p>}
               <div className="flex gap-3 justify-end pt-2">

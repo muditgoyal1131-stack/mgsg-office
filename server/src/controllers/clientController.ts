@@ -54,14 +54,21 @@ export const getAllClients = async (req: Request & { user?: any }, res: Response
 };
 
 export const createClient = async (req: Request & { user?: any }, res: Response) => {
-  const { clientName, legalName, gstin, address } = req.body;
+  const { clientName, legalName, pan, phone, gstin, address } = req.body;
   try {
     const allowed = await isPartnerOrHROrAdmin(req.user);
     if (!allowed) return res.status(403).json({ message: 'Partners, HR and Admin only' });
 
     const clientCode = await generateClientCode();
     const client = await prisma.client.create({
-      data: { clientCode, clientName, legalName: legalName || null, gstin: gstin || null, address: address || null },
+      data: {
+        clientCode, clientName,
+        legalName: legalName || null,
+        pan: pan ? pan.toUpperCase() : null,
+        phone: phone || null,
+        gstin: gstin || null,
+        address: address || null,
+      },
     });
     res.status(201).json(client);
   } catch {
@@ -71,14 +78,21 @@ export const createClient = async (req: Request & { user?: any }, res: Response)
 
 export const updateClient = async (req: Request & { user?: any }, res: Response) => {
   const { id } = req.params;
-  const { clientName, legalName, gstin, address } = req.body;
+  const { clientName, legalName, pan, phone, gstin, address } = req.body;
   try {
     const allowed = await isPartnerOrHROrAdmin(req.user);
     if (!allowed) return res.status(403).json({ message: 'Partners, HR and Admin only' });
 
     const client = await prisma.client.update({
       where: { id: Number(id) },
-      data: { clientName, legalName: legalName || null, gstin: gstin || null, address: address || null },
+      data: {
+        clientName,
+        legalName: legalName || null,
+        pan: pan ? pan.toUpperCase() : null,
+        phone: phone || null,
+        gstin: gstin || null,
+        address: address || null,
+      },
     });
     res.json(client);
   } catch {
