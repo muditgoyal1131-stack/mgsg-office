@@ -1,2 +1,5 @@
 [phases.install]
 cmds = ["npm install --legacy-peer-deps"]
+
+[variables]
+NPM_CONFIG_LEGACY_PEER_DEPS = "true"
