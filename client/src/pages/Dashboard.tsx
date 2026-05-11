@@ -164,7 +164,7 @@ const StaffDashboard: React.FC = () => {
       setMyReimbursements(reimbs.data || []);
       setMyLeaves(leaves.data || []);
       setAttendance(att.data || []);
-      setTimesheet(ts.data || []);
+      setTimesheet(Array.isArray(ts.data) ? ts.data : (ts.data?.entries || []));
       // Only show sub-tasks assigned to current user
       const allSts = sts.data || [];
       setMySubTasks(allSts.filter((st: any) => st.assignedTo?.id === user?.staffId));
